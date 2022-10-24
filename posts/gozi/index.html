@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+      <title>
+        Playing with Gozi malware ::
+        Ayman Di3i — Personal Blog
+      </title>
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta
+  name="description"
+  content="[0x0] Summary #  This week i enjoyed solving a reverse engineering challenge proposed by 0verfl0w in the context of the amazing malware analysis course zero2auto. The main task was to reverse engineer the string decryption routine used by Gozi. I really liked this challenge because it improve my technical and methodological skills, without too much drama here is my write up ☺️
+[0x1] Unpacking the first stage #  When we start analyzing malware, one of the earlier verifications is to check if the sample that we are dealing with is packed ."
+/>
+<meta
+  name="keywords"
+  content=""
+/>
+<meta name="robots" content="noodp" />
+<link rel="canonical" href="https://3ilmwdakchi.github.io/posts/gozi/" />
+
+
+
+
+
+<link rel="stylesheet" href="https://3ilmwdakchi.github.io/assets/style.css" />
+
+<link rel="stylesheet" href="https://3ilmwdakchi.github.io/style.css" />
+
+
+<link
+  rel="apple-touch-icon-precomposed"
+  sizes="144x144"
+  href="https://3ilmwdakchi.github.io/img/apple-touch-icon-144-precomposed.png"
+/>
+<link rel="shortcut icon" href="https://3ilmwdakchi.github.io/img/favicon.png" />
+
+
+<link href="https://3ilmwdakchi.github.io/assets/fonts/Inter-Italic.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+<link href="https://3ilmwdakchi.github.io/assets/fonts/Inter-Regular.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+<link href="https://3ilmwdakchi.github.io/assets/fonts/Inter-Medium.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+<link href="https://3ilmwdakchi.github.io/assets/fonts/Inter-MediumItalic.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+<link href="https://3ilmwdakchi.github.io/assets/fonts/Inter-Bold.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+<link href="https://3ilmwdakchi.github.io/assets/fonts/Inter-BoldItalic.woff2" rel="preload" type="font/woff2" as="font" crossorigin="">
+
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Playing with Gozi malware"/>
+<meta name="twitter:description" content="[0x0] Summary #  This week i enjoyed solving a reverse engineering challenge proposed by 0verfl0w in the context of the amazing malware analysis course zero2auto. The main task was to reverse engineer the string decryption routine used by Gozi. I really liked this challenge because it improve my technical and methodological skills, without too much drama here is my write up ☺️
+[0x1] Unpacking the first stage #  When we start analyzing malware, one of the earlier verifications is to check if the sample that we are dealing with is packed ."/>
+
+
+
+<meta property="og:title" content="Playing with Gozi malware" />
+<meta property="og:description" content="[0x0] Summary #  This week i enjoyed solving a reverse engineering challenge proposed by 0verfl0w in the context of the amazing malware analysis course zero2auto. The main task was to reverse engineer the string decryption routine used by Gozi. I really liked this challenge because it improve my technical and methodological skills, without too much drama here is my write up ☺️
+[0x1] Unpacking the first stage #  When we start analyzing malware, one of the earlier verifications is to check if the sample that we are dealing with is packed ." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://3ilmwdakchi.github.io/posts/gozi/" /><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2022-10-22T00:00:00+00:00" />
+<meta property="article:modified_time" content="2022-10-22T00:00:00+00:00" /><meta property="og:site_name" content="Ayman Di3i" />
+
+
+
+
+
+
+
+  </head>
+  <body class="dark-theme">
+    <div class="container">
+      <header class="header">
+  <span class="header__inner">
+    <a
+  href="/"
+  class="logo"
+  style="text-decoration: none;"
+>
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367" />
+</svg>
+</span>
+    <span class="logo__text"
+      >Ayman Di3i</span
+    >
+    <span class="logo__cursor"></span>
+  
+</a>
+
+    <span class="header__right">
+      
+        <nav class="menu">
+  <ul class="menu__inner menu__inner--desktop">
+    
+      
+        
+          <li><a href="/about">About</a></li>
+        
+      
+        
+          <li><a href="/posts">Blog</a></li>
+        
+      
+      
+      
+  </ul>
+
+  <ul class="menu__inner menu__inner--mobile">
+    
+      
+        <li><a href="/about">About</a></li>
+      
+    
+      
+        <li><a href="/posts">Blog</a></li>
+      
+    
+  </ul>
+</nav>
+
+        <span class="menu-trigger">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M0 0h24v24H0z" fill="none" />
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+          </svg>
+        </span>
+      
+      <span class="theme-toggle">
+        <svg
+  class="theme-toggler"
+  width="24"
+  height="24"
+  viewBox="0 0 48 48"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <path
+    d="M22 41C32.4934 41 41 32.4934 41 22C41 11.5066 32.4934 3 22
+  3C11.5066 3 3 11.5066 3 22C3 32.4934 11.5066 41 22 41ZM7 22C7
+  13.7157 13.7157 7 22 7V37C13.7157 37 7 30.2843 7 22Z"
+  />
+</svg>
+
+      </span>
+    </span>
+  </span>
+</header>
+
+
+      <div class="content">
+        
+  
+  
+
+  <div class="post">
+    <h1 class="post-title">Playing with Gozi malware</h1>
+    <div class="post-meta">
+      
+        <span class="post-date">
+          2022-10-22
+        </span>
+
+        
+      
+
+      
+
+
+      
+    </div>
+
+    
+      <span class="post-tags">
+        
+          <a href="https://3ilmwdakchi.github.io/tags/gozi/">#Gozi</a>&nbsp;
+        
+          <a href="https://3ilmwdakchi.github.io/tags/threat-research/">#Threat research</a>&nbsp;
+        
+          <a href="https://3ilmwdakchi.github.io/tags/reverse-engineering/">#Reverse engineering</a>&nbsp;
+        
+      </span>
+    
+
+    
+
+    <div class="post-content">
+      
+      <h2 id="0x0-summary">
+  [0x0] Summary
+  <a href="#0x0-summary" class="h-anchor" aria-hidden="true">#</a>
+</h2>
+<p>This week i enjoyed solving a reverse engineering challenge proposed by <a href="https://twitter.com/0verfl0w">0verfl0w</a> in the context of the amazing malware analysis course zero2auto. The main task was to reverse engineer the string decryption routine used by Gozi. I really liked this challenge because it improve my technical and methodological skills, without too much drama here is my write up ☺️</p>
+<h2 id="0x1-unpacking-the-first-stage">
+  [0x1] Unpacking the first stage
+  <a href="#0x1-unpacking-the-first-stage" class="h-anchor" aria-hidden="true">#</a>
+</h2>
+<p>When we start analyzing malware, one of the earlier verifications is to check if the sample that we are  dealing with is packed .. the idea behind this protection method is to hide the &ldquo;final code&rdquo; that will cause the real damage to the infected device and reconstruct it at run time since most of antivirus programs are well trained to recognize strong patterns that characterize each malware family thanks to threat intelligence people who spend their time tracking differents malware and trust me it&rsquo;s really rare nowdays to find a &ldquo;naked&rdquo; malware whose code appears as clear text. In practice, the most important indicators of packers are:</p>
+<ul>
+<li><strong>High entropy</strong>: the bad code resides inside the original PE but in a &ldquo;encrypted&rdquo; format and this increases significantly the entropy, the figure (1) shows that the entropy of the sample is high (almost 7.239).</li>
+</ul>
+
+  <img src="/Entropy-GoziPacked.png"  alt="proc_auxv"  class="center"  style="border-radius: 8px;"  />
+
+
+<ul>
+<li><strong>List of imported API(s)</strong>: the unpacker stub code which is responsible for rebuilding the final stage and transferring control to it uses mostly win32 API(s) related to memory allocation, memory permissions and resources manipulation such VirtualAlloc, VirtualProtect, loadresource etc. i guess we expect to see this list of functions in the IAT, but currently malware authors avoid to import them directly because it will trigger the attention of the AV heuristics engines instead they fill the import table with whatever they like as you can see in the second figure.</li>
+</ul>
+
+  <img src="/Imported-APi%28s%29.png"  alt="proc_auxv"  class="center"  style="border-radius: 8px;"  />
+
+
+<ul>
+<li><strong>Abnormal PE sections</strong>: Examining the state of existing sections can lead to find anomalies for example you can see in figure (3)  that the section .rdata contains a valid assembly code which is suspicious because this section is reserved for constant data only that&rsquo;s why the dafault permission is &ldquo;R&rdquo;, maybe it&rsquo;s a junk code that will never be called or we can suppose also that this permission will be changed to &ldquo;RX&rdquo; at some stage of execution and some interesting things will happen later. What i presented here is just a small example, the expression &ldquo;Abnormal PE sections&rdquo; involves many other case: Presence of data sections with large sizes, Presence of a &ldquo;non-standard&rdquo; section (for example UPX packer create a special section named &ldquo;UPX&rdquo;) etc.</li>
+</ul>
+
+  <img src="/Abnormal-Section.png"  alt="proc_auxv"  class="center"  style="border-radius: 8px;"  />
+
+
+<p>To unpack manually a malware, basically the classic strategy relies on tracking allocations that will be created, it suppose that one of these allocations will be filled with the final stage and hunt later for patterns like &ldquo;MZ&rdquo; that indicate the start of a valid PE. In other words, the unpacker will not be disturbed, it will run freely until the malicious code will be clearly reconstructed in the memory. For that purpose, we have to set up software breakpoints in the following functions: VirtualAlloc, VirtualProtect,WriteProcessMemory, CreateThread, CreateProcessA, ResumeThread. However this time I chose to work in a different way, we won&rsquo;t track any memory allocation instead we will execute the malware and  wait for a special event which characterizes the final stage of gozi based on the behaviour observed by a trusted Sandbox  (i prefer to work personally with capesandbox, it logs all interesting Win32 API(s) that were called during execution of the malware), this event may be a communication with a C2 server or the creation of a special mutex or some sort of process injection, <strong>after that we will determine from where this event comes by analyzing the call stack</strong>. In the case of gozi, I found that it establishes an http connection with the C2 185.189.151.28 using functions provided by internet library Wininet.dll as you can see in the following figure:</p>
+
+  <img src="/Http-C2.png"  alt="proc_auxv"  class="center"  style="border-radius: 8px;"  />
+
+
+<p>let&rsquo;s put a DLL breakpoint on the module Wininet.dll after attaching the malware to x64dbg debugger and specifying this command line: &ldquo;rundll.exe /Path/To/StageZeroGozi.dll,#1&rdquo;, we will get a hit when this particular dll will be loaded into memory:</p>
+
+  <img src="/Dll_breakpoint.png"  alt="proc_auxv"  class="center"  style="border-radius: 8px;"  />
+
+
+<p>Now we will run the first stage until the hit of the previous breakpoint just after do this: go to symbols tab, choose Wininet.dll and put a software breakpoint on HttpOpenRequestA and finally click on the button &ldquo;run&rdquo; to continue the execution:</p>
+
+  <img src="/HttpOpenRequestA.png"  alt="proc_auxv"  class="center"  style="border-radius: 8px;"  />
+
+
+<p>Few seconds later the debugger will catch the start of execution of the HttpOpenRequestA API: eip register points to wininet.HttpOpenRequestA and the appropriate arguments are pushed into the stack, okay now we are running code in the context of the &ldquo;real&rdquo; gozi!! let&rsquo;s have a look into the call stack to determine the portion of code responsible of calling HttpOpenRequestA: go to call stack tab it shows you the  calling order in other words &ldquo;who is calling who&rdquo;, you can see that <strong>call dword ptr ds:[&lt;&amp;HttpOpenRequestA&gt;]</strong> was executed at the address 0x1E7BDD</p>
+
+  <img src="/call-trace.png"  alt="proc_auxv"  class="center"  style="border-radius: 8px;"  />
+
+
+<p>if we follow in memory map this address we will find that it is located in a memory region of size 0xD000 which has 0x001E0000 as the starting address, this region is the <strong>mapped format</strong> of gozi malware (just check to the layout of each section it&rsquo;s size is a multiple of 0x1000), we should dump it now to the disk and realign it since static analysis tools expect the unmapped format</p>
+
+  <img src="/Mapped-Gozi.png"  alt="proc_auxv"  class="center"  style="border-radius: 4px;"  />
+
+
+<h2 id="0x2-hunting-of-the-decryption-routine">
+  [0x2] Hunting of the decryption routine
+  <a href="#0x2-hunting-of-the-decryption-routine" class="h-anchor" aria-hidden="true">#</a>
+</h2>
+<p>Now we have the unpacked gozi in our hands, it&rsquo;s time to upload it to ida pro and keeping an eye on x64dbg at the same time for a deep investigation. The important questions that we should answer to resolve this challenge are : &ldquo;where the encrypted data resides exactly?&rdquo; and &ldquo;what is the portion of code responsible of processing this encrypted data at run time?&rdquo; let&rsquo;s go back to the step where the malware called &ldquo;InternetOpenA&rdquo; to Initializes the use of the WinINet functions to start talking with the C2 server (just add a software breakpoint that points to this function and re run the program until it reaches it) the x64 debugger shows that the first argument &ldquo;lpszAgent&rdquo; is a pointer to &ldquo;Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1)&rdquo; that resides in a dynamic memory region ok ok hold on for a second from where the string comes from, that looks interesting maybe this string is a part of list objects encrypted by the malware:</p>
+
+  <img src="/OpenInternetA.png"  alt="proc_auxv"  class="center"  style="border-radius: 4px;"  />
+
+
+<p>if you go to ida pro you will be sure that &ldquo;InternetOpenA&rdquo; is called once inside the function sub_10007AF1, by analyzing the Code Cross-references and the arguments passed : sub_1000375F &ndash;&gt; sub_10006954 &ndash;&gt; sub_10007AF1, it&rsquo;s clear that dword_1000A368 points to &ldquo;Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1)&rdquo; this variable is initialized by a pointer returned by the function HeapAlloc inside the function sub_10003D2C after that the content pointed by dword_1000A368 will be filled with the content of the buffer pointed by ((*<em>dword_1000A348) + byte_1000B552</em>) using sprintf:
+
+  <img src="/sprintf.png"  alt="proc_auxv"  class="center"  style="border-radius: 4px;"  />
+
+</p>
+<p>if we repeat the same process with other clear strings we will notice a repetitive pattern: all clear strings associated to gozi malware were referenced by a pointer that takes this form: (*dword_1000A348 + PtrToEncryptedVariableLocatedInBssSegment), the first component  points to the start of memory where the decrypted strings are stored and the second component points to the clear string within that memory , from here i suspect that the malware author choose probably to create a copy of the BSS and decrypt it at once. Finding where the &ldquo;base address&rdquo; of the decrypted area takes its value is the key to find the decryption routine because the operation of initialization of this variable means that the decryption routine has finished and the malware can use this variable to locate its strings so we are not far from this routine: xrefs to this variable shows that it is written for a single time in the function sub_00245D2E:</p>
+
+  <img src="/reference.png"  alt="proc_auxv"  class="center"  style="border-radius: 4px;"  />
+
+
+<p>Inside the previous function a  lot of important work takes place. First the malware get the address and the size of the BSS segment and store these values in the local variables [ebp-0xC] and [ebp-0x4] by calling the function sub_100047C, in summary this one do the following:</p>
+<ul>
+<li>
+<p>Receive a pointer to the IMAGE_DOS_HEADER then it extract the field e_lfanew which is the file address of new exe header (1)</p>
+</li>
+<li>
+<p>Get the number of existing sections, this information can be found in IMAGE_FILE_HEADER.NumberOfSections (2)</p>
+</li>
+<li>
+<p>Calculate the address of the section headers table (3)</p>
+</li>
+<li>
+<p>Iterate through the sections headers table to locate the entry associated to the segment &ldquo;BSS&rdquo; (4)</p>
+</li>
+<li>
+<p>Extract the relative virtual address and the the virtual size of the &ldquo;BSS&rdquo; segment and store these values inside the variables pointed by a3 and a4 (5)</p>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-C" data-lang="C"><span style="color:#66d9ef">int</span> <span style="color:#66d9ef">__fastcall</span> <span style="color:#a6e22e">sub_100047C8</span>(<span style="color:#66d9ef">int</span> a1, <span style="color:#66d9ef">int</span> IMAGE_DOS_HEADER, _DWORD <span style="color:#f92672">*</span>a3, _DWORD <span style="color:#f92672">*</span>a4)
+{
+  <span style="color:#66d9ef">int</span> v4; <span style="color:#75715e">// ecx
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> v5; <span style="color:#75715e">// esi
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> result; <span style="color:#75715e">// eax
+</span><span style="color:#75715e"></span>  _DWORD <span style="color:#f92672">*</span>v7; <span style="color:#75715e">// ecx
+</span><span style="color:#75715e"></span>  _DWORD <span style="color:#f92672">*</span>v8; <span style="color:#75715e">// edx
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> v9; <span style="color:#75715e">// ecx
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> v10; <span style="color:#75715e">// edx
+</span><span style="color:#75715e"></span>
+  v4 <span style="color:#f92672">=</span> IMAGE_DOS_HEADER <span style="color:#f92672">+</span> <span style="color:#f92672">*</span>(_DWORD <span style="color:#f92672">*</span>)(IMAGE_DOS_HEADER <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x3C</span>);<span style="color:#75715e">// the variable v4 will receive the address of the IMAGE_FILE_HEADER (1)
+</span><span style="color:#75715e"></span>  v5 <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>(<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">__int16</span> <span style="color:#f92672">*</span>)(v4 <span style="color:#f92672">+</span> <span style="color:#ae81ff">6</span>);<span style="color:#75715e">// the variable v5 will receive the number of the existing sections (2)
+</span><span style="color:#75715e"></span>  result <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+  v7 <span style="color:#f92672">=</span> (_DWORD <span style="color:#f92672">*</span>)(<span style="color:#f92672">*</span>(<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">__int16</span> <span style="color:#f92672">*</span>)(v4 <span style="color:#f92672">+</span> <span style="color:#ae81ff">20</span>) <span style="color:#f92672">+</span> v4 <span style="color:#f92672">+</span> <span style="color:#ae81ff">24</span>);<span style="color:#75715e">// v7 will points to the &#34;sections headers&#34; array because (v4+24) points to the start of the optional header and *(unsigned_int16*)(v4 + 20) is the size of the optional header (3)
+</span><span style="color:#75715e"></span>  v8 <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+  <span style="color:#66d9ef">do</span>
+  {
+    <span style="color:#66d9ef">if</span> ( <span style="color:#f92672">!</span>v7[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">*</span>v7 <span style="color:#f92672">==</span> <span style="color:#960050;background-color:#1e0010">&#39;</span>ssb.<span style="color:#960050;background-color:#1e0010">&#39;</span> ) <span style="color:#75715e">//compare the attribut &#34;Name&#34; of the structure IMAGE_SECTION_HEADER with &#34;bss&#34; string (4)
+</span><span style="color:#75715e"></span>      v8 <span style="color:#f92672">=</span> v7;
+    v7 <span style="color:#f92672">+=</span> <span style="color:#ae81ff">0xA</span>; <span style="color:#75715e">//increment the pointer v7 by 0xA to process the next entry of the secion table
+</span><span style="color:#75715e"></span>    <span style="color:#f92672">--</span>v5;
+  }
+  <span style="color:#66d9ef">while</span> ( v5 <span style="color:#f92672">&amp;&amp;</span> <span style="color:#f92672">!</span>v8 );
+  <span style="color:#66d9ef">if</span> ( <span style="color:#f92672">!</span>v8 )
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">2</span>;
+  v9 <span style="color:#f92672">=</span> v8[<span style="color:#ae81ff">3</span>];
+  <span style="color:#66d9ef">if</span> ( v9 )
+  {
+    v10 <span style="color:#f92672">=</span> v8[<span style="color:#ae81ff">4</span>];
+    <span style="color:#66d9ef">if</span> ( v10 )
+    {
+      <span style="color:#f92672">*</span>a3 <span style="color:#f92672">=</span> v9; <span style="color:#75715e">//store the relative virtual address value inside the variable pointed by a3  (5)
+</span><span style="color:#75715e"></span>      <span style="color:#f92672">*</span>a4 <span style="color:#f92672">=</span> v10; <span style="color:#75715e">//store the virtual size of the segment inside the variable pointed by a4 
+</span><span style="color:#75715e"></span>      <span style="color:#66d9ef">return</span> result;
+    }
+  }
+  <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">11</span>;
+}
+</code></pre></div><p>The next step is to create a buffer that has the same size as the BSS segment and copy its content into that buffer using memcpy. Right after that, a sort of &ldquo;key&rdquo; will be constructed by performing simple arithmetic operations between multiple components: first the numerical value equivalent to  &ldquo;Apr &quot; will be added to to the numerical value equivalent to &ldquo;26 2&rdquo;  (1) then the result will be added to [ebp - 0xC] (2) which contains the relative virtual address of &ldquo;BSS&rdquo; and the final value will be added to (argument2 -1) where argument2  is the second argument of the function sub_10005D2E, this key will be pushed into the stack along with other parameters to call sub_1000138A, one of these parameters is a pointer to the region that contains the copy of BSS segment <strong>we can now assume with high confidence that sub_1000138A is the decryption routine that we are looking for</strong>. Please note that the argument 2 is not a constant, it is a random value that can take any value in [0:0x13-1] because its value is based on the result of &ldquo;GetSystemTimeAsFileTime&rdquo; that&rsquo;s why the malware execute perform some form of &ldquo;brute force&rdquo; by executing the decryption routine for several times with different values of arugment2 until it find the right key.</p>
+
+  <img src="/call.png"  alt="proc_auxv"  class="center"  style="border-radius: 4px;"  />
+
+
+<h2 id="0x3-inside-the-decryption-routine">
+  [0x3] Inside the decryption routine
+  <a href="#0x3-inside-the-decryption-routine" class="h-anchor" aria-hidden="true">#</a>
+</h2>
+<p>The algorithm used is simple,recursive and exclusive which doesn&rsquo;t rely on a well known algorithm like CR4 etc, each block of 4 bytes is decrypted using the formula: <strong>DecryptedChunk[n] = EncryptedChunk[n-1] - Key + EncryptedChunk[n]</strong>. Note that the random value (remember argument 2 of the function sub_00245D2E) that will be used to construct the correct key is : 19, i executed a brute force process in my local computer to determine it.</p>
+
+  <img src="/decryptionroutine.png"  alt="proc_auxv"  class="center"  style="border-radius: 4px;"  />
+
+
+<p>We can implement an emulation of this routine in python to decrypt the BSS segment:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">
+<span style="color:#f92672">import</span> pefile
+
+<span style="color:#f92672">import</span> struct
+
+<span style="color:#f92672">import</span> argparse
+
+<span style="color:#66d9ef">def</span> <span style="color:#a6e22e">main</span>(Path):
+
+    Gozi <span style="color:#f92672">=</span> pefile<span style="color:#f92672">.</span>PE(Path)
+
+    DecryptedData <span style="color:#f92672">=</span> <span style="color:#e6db74">b</span><span style="color:#e6db74">&#39;&#39;</span>
+
+    Key <span style="color:#f92672">=</span> struct<span style="color:#f92672">.</span>unpack(<span style="color:#e6db74">&#34;&lt;I&#34;</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;Apr &#34;</span>)[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">+</span> struct<span style="color:#f92672">.</span>unpack(<span style="color:#e6db74">&#34;&lt;I&#34;</span>,<span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;26 2&#34;</span>)[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x0000B000</span> <span style="color:#f92672">+</span> (<span style="color:#ae81ff">19</span>) <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>
+
+    print(<span style="color:#e6db74">&#34;key string is &#34;</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;&#34;</span> <span style="color:#f92672">+</span> hex(Key))
+
+    <span style="color:#66d9ef">for</span> section <span style="color:#f92672">in</span> Gozi<span style="color:#f92672">.</span>sections:
+    
+    <span style="color:#75715e">#check if it&#39;s the BSS section</span>
+      <span style="color:#66d9ef">if</span>(section<span style="color:#f92672">.</span>Name<span style="color:#f92672">.</span>decode()<span style="color:#f92672">.</span>rstrip(<span style="color:#e6db74">&#39;</span><span style="color:#ae81ff">\x00</span><span style="color:#e6db74">&#39;</span>) <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;.bss&#34;</span>):
+
+        <span style="color:#75715e">#read the content of the section</span>
+
+        EncryptedData <span style="color:#f92672">=</span> section<span style="color:#f92672">.</span>get_data()
+
+        <span style="color:#75715e">#start the decryption process: in each iteration a block of 4bytes  will be decrypted</span>
+
+        PreviousEncryptedChunk <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0</span>
+
+        counter <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0</span>
+        
+        i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0x0</span>
+
+        <span style="color:#66d9ef">while</span>( counter <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">1024</span>):
+
+            DecryptedChunk <span style="color:#f92672">=</span> (PreviousEncryptedChunk <span style="color:#f92672">-</span> Key <span style="color:#f92672">+</span> struct<span style="color:#f92672">.</span>unpack(<span style="color:#e6db74">&#34;&lt;I&#34;</span>,EncryptedData[i:i<span style="color:#f92672">+</span><span style="color:#ae81ff">4</span>])[<span style="color:#ae81ff">0</span>]) <span style="color:#f92672">&amp;</span> (pow(<span style="color:#ae81ff">2</span>,<span style="color:#ae81ff">32</span>) <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>)
+
+            PreviousEncryptedChunk <span style="color:#f92672">=</span> struct<span style="color:#f92672">.</span>unpack(<span style="color:#e6db74">&#34;&lt;I&#34;</span>,EncryptedData[i:i<span style="color:#f92672">+</span><span style="color:#ae81ff">4</span>])[<span style="color:#ae81ff">0</span>]
+
+            i <span style="color:#f92672">=</span> i <span style="color:#f92672">+</span> <span style="color:#ae81ff">0x4</span>
+            
+            counter <span style="color:#f92672">=</span> counter <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>
+
+            DecryptedData <span style="color:#f92672">=</span> DecryptedData <span style="color:#f92672">+</span> (struct<span style="color:#f92672">.</span>pack(<span style="color:#e6db74">&#34;&lt;I&#34;</span>,DecryptedChunk))
+
+        
+        
+        print(str(DecryptedData))
+
+<span style="color:#66d9ef">if</span> __name__<span style="color:#f92672">==</span><span style="color:#e6db74">&#34;__main__&#34;</span>:
+
+    parser <span style="color:#f92672">=</span> argparse<span style="color:#f92672">.</span>ArgumentParser(description<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;enter the full path of gozi malware to decrypt its string&#39;</span>)
+    
+    parser<span style="color:#f92672">.</span>add_argument(<span style="color:#e6db74">&#39;-P&#39;</span>,<span style="color:#e6db74">&#39;--Path&#39;</span>, help<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;Gozi malware Path&#39;</span>, required<span style="color:#f92672">=</span><span style="color:#66d9ef">True</span>)
+
+    args <span style="color:#f92672">=</span> vars(parser<span style="color:#f92672">.</span>parse_args())
+
+    main(args[<span style="color:#e6db74">&#34;Path&#34;</span>])
+</code></pre></div><p>and here is our beautiful list of decrypted channels:</p>
+
+  <img src="/DecryptedStrings.png"  alt="proc_auxv"  class="center"  style="border-radius: 4px;"  />
+
+
+<h2 id="0x4-a-little-bonus">
+  [0x4] A Little Bonus
+  <a href="#0x4-a-little-bonus" class="h-anchor" aria-hidden="true">#</a>
+</h2>
+<p>You remember when i said that malware researchers &ldquo;track&rdquo; and &ldquo;monitor&rdquo; malware families continuously? one of their main goal is to look for some specific patterns by studying in depth the anatomy of the malware, you can imagine it as a strong fingerprint or &ldquo;signature&rdquo;. In the case of gozi family, <strong>the aglorithm used for decryption is &ldquo;custom&rdquo; and &ldquo;exclusive&rdquo; which means that the probability of finding another executable that contains the same code is logically low</strong> also the way the malware parse itself to extract the relative virtual address and the virtual size of the BSS section looks custom too, so we can use these findings to build a basic detection/classification  rule using Yara tool:</p>
+<pre tabindex="0"><code>import &quot;pe&quot;
+
+rule Gozi {
+
+    meta:
+        description = &quot;Gozi malware family&quot;
+
+        author = &quot;TidNdader&quot;
+
+        date = &quot;22/10/2022&quot;
+
+        state = &quot;experimental&quot;
+
+    strings:
+
+        $decryption_routine = { 53 C1 E8 02 33 DB 85 C0 74 2F 56 8B 74 24 0C 57 2B F2 83 7C 24 18 00 8B 0C 16 8B F9 74 09 85 C9 75 05 33 C0 40 EB 0D 2B 5C 24 14 03 CB 89 0A 8B DF 83 C2 04 48 75 DB 5F 5E 5B C2 0C 00 }
+
+        $ExtractBssFeatures = { 8B 4A 3C 03 CA 0F B7 51 14 56 0F B7 71 06 33 C0 8D 4C 0A 18 33 D2 39 41 04 75 0A 81 39 2E 62 73 73 75 02 8B D1 83 C1 28 4E 74 04 3B D0 74 E7 3B D0 74 20 8B 4A 0C 3B C8 74 15 8B 52 10 3B D0 74 0E 8B 74 24 08 89 0E 8B 4C 24 0C 89 11 EB 07 6A 0B EB 02 6A 02 58 5E C2 08 00 }
+
+    condition: (pe.is_pe and $decryption_routine and $ExtractBssFeatures)      
+}
+</code></pre><h2 id="0x5-index">
+  [0x5] Index
+  <a href="#0x5-index" class="h-anchor" aria-hidden="true">#</a>
+</h2>
+<ul>
+<li>
+<p>the md5 hash of the sample to analyze : f28f39ada498d66c378fd59227e0f215</p>
+</li>
+<li>
+<p>Download Link : <a href="https://bazaar.abuse.ch/sample/0a66e8376fc6d9283e500c6e774dc0a109656fd457a0ce7dbf40419bc8d50936/">malwarebazar</a></p>
+</li>
+</ul>
+
+    </div>
+    
+
+    
+      
+    
+  </div>
+
+      </div>
+
+      
+        <footer class="footer">
+  <div class="footer__inner">
+    
+      <a
+  href="/"
+  class="logo"
+  style="text-decoration: none;"
+>
+  
+    <span class="logo__mark"><svg xmlns="http://www.w3.org/2000/svg" class="greater-icon" viewBox="0 0 44 44">
+  <path fill="none" d="M15 8l14.729 14.382L15 35.367" />
+</svg>
+</span>
+    <span class="logo__text"
+      >Ayman Di3i</span
+    >
+    <span class="logo__cursor"></span>
+  
+</a>
+
+      <div class="copyright">
+        <span
+          >© 2022 Powered by
+          <a href="https://gohugo.io" target="_blank" rel="noopener">Hugo</a></span
+        >
+        <span
+          >Theme created by
+          <a href="https://twitter.com/panr" target="_blank" rel="noopener">panr</a></span
+        >
+      </div>
+    
+  </div>
+</footer>
+
+<script src="https://3ilmwdakchi.github.io/assets/main.js"></script>
+<script src="https://3ilmwdakchi.github.io/assets/prism.js"></script>
+
+
+      
+    </div>
+
+    
+  </body>
+</html>

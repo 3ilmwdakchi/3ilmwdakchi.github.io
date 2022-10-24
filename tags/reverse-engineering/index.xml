@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Reverse engineering on Ayman Di3i</title>
+    
+    
+    
+    <link>https://3ilmwdakchi.github.io/tags/reverse-engineering/</link>
+    <description>Recent content in Reverse engineering on Ayman Di3i</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sat, 22 Oct 2022 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="https://3ilmwdakchi.github.io/tags/reverse-engineering/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Playing with Gozi malware</title>
+      <link>https://3ilmwdakchi.github.io/posts/gozi/</link>
+      <pubDate>Sat, 22 Oct 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://3ilmwdakchi.github.io/posts/gozi/</guid>
+      <description>
+        
+          
+          
+          
+        
+        
+        
+          [0x0] Summary #  This week i enjoyed solving a reverse engineering challenge proposed by 0verfl0w in the context of the amazing malware analysis course zero2auto. The main task was to reverse engineer the string decryption routine used by Gozi. I really liked this challenge because it improve my technical and methodological skills, without too much drama here is my write up ☺️
+[0x1] Unpacking the first stage #  When we start analyzing malware, one of the earlier verifications is to check if the sample that we are dealing with is packed .
+          
+        
+        </description>
+    </item>
+    
+  </channel>
+</rss>
